@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Literature Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #000000;
+            color: white;
+            text-align: center;
+        }
+        .chat-container {
+            width: 50%;
+            margin: auto;
+            border: 1px solid #000000;
+            background: #14141400;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .chat-box {
+            height: 425px;
+            overflow-y: auto;
+            padding: 12px;
+            border: 1px solid #4c3e3e;
+            background: #181717;
+            text-align: left;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .chat-input {
+            width: 80%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            font-size: 16px;
+        }
+        .send-btn {
+            padding: 10px;
+            background: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        
+        .user-message {
+            color: rgb(187, 225, 225);
+            margin-bottom: 5px;
+        }
+        
+        .bot-message {
+            color: rgb(249, 246, 246);
+            margin-bottom: 5px;
+        }
+        
+        .book-cover {
+            max-width: 100px;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+        
+        .bubbles {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none; 
+            z-index: 0; 
+        }
+        
+        .bubble {
+            position: absolute;
+            bottom: -50px;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.434);
+            border-radius: 50%;
+            animation: rise 18s infinite ease-in;
+            opacity: 0.8;
+        }
+        
+        @keyframes rise {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-100vh); opacity: 0; }
+        }
+
+        .footer {
+            background-color: #97747400;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>📚 AI Literature Tutor Chatbot</h1>
+    <p>Ask about summaries, themes, and characters!</p>
+
+    <div class="bubbles"></div>
+
+    <div class="chat-container">
+        <div class="chat-box" id="chatBox"></div>
+        <input type="text" id="userInput" class="chat-input" placeholder="Enter a book name...">
+        <button class="send-btn" onclick="handleBookQuery()">Send</button>
+    </div>
+
+    <footer class="footer">
+        <p id="copyright">Keshava Reddy</p>
+    </footer>
+
+    <script>
+        let currentBook = "";
+        let userStage = 0;
+
+        async function fetchBookInfo(query) {
+            const API_URL = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=1&key=AIzaSyApLH9XRVDrnbxZr76ry0yHSJO7x2T4Zqk`;
+            try {
+                let res = await fetch(API_URL);
+                if (!res.ok) throw new Error(`API Error: ${res.status}`);
+
+                let data = await res.json();
+                return data.items && data.items.length > 0 ? data.items[0].volumeInfo : null;
+            } catch (error) {
+                console.error("Error fetching book data:", error);
+                return { error: "Unable to fetch book information. Please try again later." };
+            }
+        }
+
+        async function handleBookQuery() {
+            let userInput = document.getElementById("userInput").value.trim();
+            if (!userInput) return;
+
+            let chatBox = document.getElementById("chatBox");
+            chatBox.innerHTML += `<p class="user-message">You: ${userInput}</p>`;
+            document.getElementById("userInput").value = "";
+
+            if (userStage === 0) {
+                currentBook = userInput;
+                chatBox.innerHTML += `<p class="bot-message">Bot: What do you want to know about "<strong>${currentBook}</strong>"? (Type: <strong>Summary</strong>, <strong>Theme</strong>, <strong>Characters</strong>, or <strong>Rating</strong>)</p>`;
+                userStage = 1; 
+            } 
+            else if (userStage === 1) {
+                let choice = userInput.toLowerCase();
+                let bookInfo = await fetchBookInfo(currentBook);
+
+                if (bookInfo?.error) {
+                    chatBox.innerHTML += `<p class="bot-message">Bot: ${bookInfo.error}</p>`;
+                    userStage = 0;
+                    return;
+                }
+
+                let response = "I couldn't find any information on that.";
+
+                if (bookInfo) {
+                    if (choice.includes("summary")) {
+                        response = bookInfo.description ? bookInfo.description : "No summary available.";
+                    } else if (choice.includes("theme")) {
+                        response = "Themes are not always available😊";
+                    } else if (choice.includes("characters") || choice.includes("author")) {
+                        response = bookInfo.authors ? `Main author: ${bookInfo.authors.join(", ")}` : "No character details available.";
+                    } else if (choice.includes("rating")) {
+                        response = bookInfo.averageRating ? `Rating: ⭐ ${bookInfo.averageRating}/5` : "No rating available.";
+                    } else {
+                        response = "Please type: Summary, Theme, Characters, or Rating.";
+                        userStage = 1; 
+                    }
+
+                    if (bookInfo.imageLinks?.thumbnail) {
+                        response += `<br><img src="${bookInfo.imageLinks.thumbnail}" class="book-cover" alt="Book Cover">`;
+                    }
+                }
+
+                chatBox.innerHTML += `<p class="bot-message">Bot: ${response}</p>`;
+                userStage = 0; 
+            }
+
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            let chatBox = document.getElementById("chatBox");
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function createBubbles() {
+            const bubbleContainer = document.querySelector('.bubbles');
+            for (let i = 0; i < 40; i++) { 
+                let bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                bubble.style.left = `${Math.random() * 100}%`;
+                bubble.style.animationDuration = `${Math.random() * 5 + 5}s`; 
+                bubble.style.width = bubble.style.height = `${Math.random() * 20 + 10}px`; 
+
+                bubble.addEventListener("animationend", () => bubble.remove()); 
+                bubbleContainer.appendChild(bubble);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", createBubbles);
+
+        document.getElementById("userInput").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                handleBookQuery();
+            }
+        });
+
+        const currentYear = new Date().getFullYear();
+        document.getElementById("copyright").innerHTML = `© ${currentYear} AI Literature Tutor. All Rights Reserved by S.Keshava Reddy Roll No:41,K.Chandu Roll No:18,B.vinay Roll No:20.`;
+
+
+    </script>
+</body>
+</html>
