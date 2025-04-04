@@ -121,7 +121,7 @@
         let userStage = 0;
 
         async function fetchBookInfo(query) {
-            const API_URL = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=1&key=AIzaSyApLH9XRVDrnbxZr76ry0yHSJO7x2T4Zqk`;
+            const API_URL = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=1&key=YOUR_API_KEY`;
             try {
                 let res = await fetch(API_URL);
                 if (!res.ok) throw new Error(`API Error: ${res.status}`);
